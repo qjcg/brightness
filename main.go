@@ -1,5 +1,5 @@
 // Set backlight brightness on a Linux system via sysfs.
-// User running this command must have write access to ControlFile (default: 0644/root:root).
+// User running this command must have write access to FCtl (default: 0644/root:root).
 package main
 
 import (
