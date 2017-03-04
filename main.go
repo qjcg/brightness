@@ -38,8 +38,24 @@ func Get(fctl string) (float64, error) {
 
 // Set writes backlight brightness to the provided control file.
 // pct: overall brightness level expressed as a percentage (ex: 30 -> 30% of max brightness)
-func Set(fctl string, pct, max float64) error {
-	b := strconv.AppendFloat([]byte(nil), FromPct(pct, max), 'f', 0, 64)
+func Set(fctl string, max, pct float64) error {
+	b := strconv.AppendFloat([]byte(nil), FromPct(max, pct), 'f', 0, 64)
+	if err := ioutil.WriteFile(fctl, b, 0644); err != nil {
+		return err
+	}
+	return nil
+}
+
+// SetIncr sets backlight brightness by increment (ex: +5, -10).
+// incr: relative brightness level expressed as a percentage (ex: 30 -> 30% of max brightness)
+func SetIncr(fctl string, max, incr float64) error {
+	if incr < 0 {
+	}
+	cur, err := Get(fctl)
+	if err != nil {
+		return err
+	}
+	b := strconv.AppendFloat([]byte(nil), cur+FromPct(max, incr), 'f', 0, 64)
 	if err := ioutil.WriteFile(fctl, b, 0644); err != nil {
 		return err
 	}
@@ -48,15 +64,15 @@ func Set(fctl string, pct, max float64) error {
 
 // ToPct returns a percent value for brightness, given a brightness and
 // max brightness value in "brightness units".
-// E.g. ToPct(1092.0, 4437.0) -> 25 (%)
-func ToPct(b, max float64) float64 {
+// E.g. ToPct(4437.0, 1092.0) -> 25 (%)
+func ToPct(max, b float64) float64 {
 	return b / max * 100.0
 }
 
 // FromPct takes a percent brightness value and max value in "brightness
 // units", and returns the current brightness value in "brightness units".
 // E.g. FromPct(25.0, 4437.0) -> 1109.0
-func FromPct(pct, max float64) float64 {
+func FromPct(max, pct float64) float64 {
 	return pct / 100.0 * max
 }
 
@@ -80,15 +96,26 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Printf("%0.0f\n", ToPct(b, max))
+		fmt.Printf("%0.0f\n", ToPct(max, b))
 
 	// Set brightness to provided pct value.
 	case 1:
+		// FIXME: Handle negative values.
+		// Provided value is an increment (ex: +5, or -20)
+		if strings.ContainsAny(string(flag.Arg(0)[0]), "+-") {
+			amt, err := strconv.ParseFloat(string(flag.Arg(0)[1]), 64)
+			if err != nil {
+				log.Fatal(err)
+			}
+			SetIncr(FCtl, max, amt)
+			break
+		}
+
 		level, err := strconv.ParseFloat(os.Args[1], 64)
 		if err != nil {
 			log.Fatal(err)
 		}
-		if err := Set(FCtl, level, max); err != nil {
+		if err := Set(FCtl, max, level); err != nil {
 			log.Fatal(err)
 		}
 
