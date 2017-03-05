@@ -74,7 +74,7 @@ func FromPct(max, pct float64) float64 {
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, "Usage: %s [level 1-100]\n", os.Args[0])
+	fmt.Fprintf(os.Stderr, "Usage: %s [LEVEL 0-100 | INCREMENT +/-N]\n", os.Args[0])
 }
 
 func main() {
