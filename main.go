@@ -1,9 +1,8 @@
-// Set backlight brightness on a Linux system via sysfs.
+// Set backlight brightness on Linux via sysfs.
 // User running this command must have write access to FCtl (default: 0644/root:root).
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -37,25 +36,23 @@ func Get(fctl string) (float64, error) {
 }
 
 // Set writes backlight brightness to the provided control file.
-// pct: overall brightness level expressed as a percentage (ex: 30 -> 30% of max brightness)
-func Set(fctl string, max, pct float64) error {
-	b := strconv.AppendFloat([]byte(nil), FromPct(max, pct), 'f', 0, 64)
-	if err := ioutil.WriteFile(fctl, b, 0644); err != nil {
-		return err
-	}
-	return nil
-}
+// pct: overall brightness level, or increment, expressed as a percentage
+// 	- (ex: 30 -> 30% of max brightness)
+// 	- (ex: -5 -> -5% of max brightness)
+// incr: indicates whether the pct value provided is an increment.
+func Set(fctl string, max, pct float64, incr bool) error {
+	var b []byte
 
-// SetIncr sets backlight brightness by increment (ex: +5, -10).
-// incr: relative brightness level expressed as a percentage (ex: 30 -> 30% of max brightness)
-func SetIncr(fctl string, max, incr float64) error {
-	if incr < 0 {
+	if incr {
+		cur, err := Get(fctl)
+		if err != nil {
+			return err
+		}
+		b = strconv.AppendFloat([]byte(nil), cur+FromPct(max, pct), 'f', 0, 64)
+	} else {
+		b = strconv.AppendFloat([]byte(nil), FromPct(max, pct), 'f', 0, 64)
 	}
-	cur, err := Get(fctl)
-	if err != nil {
-		return err
-	}
-	b := strconv.AppendFloat([]byte(nil), cur+FromPct(max, incr), 'f', 0, 64)
+
 	if err := ioutil.WriteFile(fctl, b, 0644); err != nil {
 		return err
 	}
@@ -76,11 +73,11 @@ func FromPct(max, pct float64) float64 {
 	return pct / 100.0 * max
 }
 
+func usage() {
+	fmt.Fprintf(os.Stderr, "Usage: %s [level 1-100]\n", os.Args[0])
+}
+
 func main() {
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s [level 1-100]\n", os.Args[0])
-	}
-	flag.Parse()
 
 	// Get maximum brightness.
 	max, err := Get(FMax)
@@ -88,7 +85,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	switch flag.NArg() {
+	// Act based on the number of arguments, excluding this command.
+	switch len(os.Args) - 1 {
 
 	// Print current brightness to stdout.
 	case 0:
@@ -100,26 +98,33 @@ func main() {
 
 	// Set brightness to provided pct value.
 	case 1:
-		// FIXME: Handle negative values.
-		// Provided value is an increment (ex: +5, or -20)
-		if strings.ContainsAny(string(flag.Arg(0)[0]), "+-") {
-			amt, err := strconv.ParseFloat(string(flag.Arg(0)[1]), 64)
-			if err != nil {
-				log.Fatal(err)
-			}
-			SetIncr(FCtl, max, amt)
-			break
+
+		// If argument is help, print usage message.
+		switch os.Args[1] {
+		case "-h", "-help", "--help", "help":
+			usage()
+			os.Exit(0)
 		}
 
 		level, err := strconv.ParseFloat(os.Args[1], 64)
 		if err != nil {
 			log.Fatal(err)
 		}
-		if err := Set(FCtl, max, level); err != nil {
+
+		// Provided level is an increment (ex: +5, or -20)
+		if strings.ContainsAny(string(os.Args[1][0]), "+-") {
+			if err := Set(FCtl, max, level, true); err != nil {
+				log.Fatal(err)
+			}
+			os.Exit(0)
+		}
+
+		// Provided level is an absolute percentage (ex: 25%).
+		if err := Set(FCtl, max, level, false); err != nil {
 			log.Fatal(err)
 		}
 
 	default:
-		flag.Usage()
+		usage()
 	}
 }
