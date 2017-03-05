@@ -48,9 +48,9 @@ func Set(fctl string, max, pct float64, incr bool) error {
 		if err != nil {
 			return err
 		}
-		b = strconv.AppendFloat([]byte(nil), cur+FromPct(max, pct), 'f', 0, 64)
+		b = strconv.AppendFloat([]byte(nil), cur+fromPct(max, pct), 'f', 0, 64)
 	} else {
-		b = strconv.AppendFloat([]byte(nil), FromPct(max, pct), 'f', 0, 64)
+		b = strconv.AppendFloat([]byte(nil), fromPct(max, pct), 'f', 0, 64)
 	}
 
 	if err := ioutil.WriteFile(fctl, b, 0644); err != nil {
@@ -59,17 +59,17 @@ func Set(fctl string, max, pct float64, incr bool) error {
 	return nil
 }
 
-// ToPct returns a percent value for brightness, given a brightness and
+// toPct returns a percent value for brightness, given a brightness and
 // max brightness value in "brightness units".
-// E.g. ToPct(4437.0, 1092.0) -> 25 (%)
-func ToPct(max, b float64) float64 {
+// E.g. toPct(4437.0, 1092.0) -> 25 (%)
+func toPct(max, b float64) float64 {
 	return b / max * 100.0
 }
 
-// FromPct takes a percent brightness value and max value in "brightness
+// fromPct takes a percent brightness value and max value in "brightness
 // units", and returns the current brightness value in "brightness units".
-// E.g. FromPct(25.0, 4437.0) -> 1109.0
-func FromPct(max, pct float64) float64 {
+// E.g. fromPct(25.0, 4437.0) -> 1109.0
+func fromPct(max, pct float64) float64 {
 	return pct / 100.0 * max
 }
 
@@ -94,7 +94,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Printf("%0.0f\n", ToPct(max, b))
+		fmt.Printf("%0.0f\n", toPct(max, b))
 
 	// Set brightness to provided pct value.
 	case 1:
