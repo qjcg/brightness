@@ -1,6 +1,6 @@
 // Set backlight brightness on Linux via sysfs.
 // User running this command must have write access to FCtl (default: 0644/root:root).
-package main
+package main // import "github.com/qjcg/brightness"
 
 import (
 	"fmt"
