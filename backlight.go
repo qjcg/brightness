@@ -48,6 +48,7 @@ func getVal(r io.Reader) (float64, error) {
 	return val, nil
 }
 
+// Set writes a backlight brightness value to the provided io.Writer.
 func (bl *Backlight) Set(w io.Writer, pct float64) error {
 	b := strconv.AppendFloat(
 		[]byte(nil),
