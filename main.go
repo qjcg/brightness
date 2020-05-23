@@ -1,5 +1,4 @@
 // Set backlight brightness on Linux via sysfs.
-// User running this command must have write access to FCtl (default: 0644/root:root).
 package main
 
 import (
@@ -10,6 +9,7 @@ import (
 	"strings"
 )
 
+// FIXME: Don't hard code these, accept them from config/environment.
 var (
 	FCtl = "/sys/class/backlight/intel_backlight/brightness"
 	FMax = "/sys/class/backlight/intel_backlight/max_brightness"
@@ -20,7 +20,9 @@ func usage() {
 }
 
 func main() {
-	fCtl, err := os.Open(FCtl)
+
+	// Open backlight brightness and max_brightness files.
+	fCtl, err := os.OpenFile(FCtl, os.O_RDWR, 0)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -39,7 +41,7 @@ func main() {
 
 	// Print current brightness to stdout.
 	case 0:
-		fmt.Printf("%0.0f\n", toPct(max, b))
+		fmt.Printf("%0.0f\n", bl.Percent())
 
 	// Set brightness to provided pct value.
 	case 1:
@@ -58,15 +60,15 @@ func main() {
 
 		// Provided level is an increment (ex: +5, or -20)
 		if strings.ContainsAny(string(os.Args[1][0]), "+-") {
-			if err := Set(FCtl, max, level, true); err != nil {
-				log.Fatal(err)
+			if err := bl.SetIncr(fCtl, level); err != nil {
+				log.Fatalf("Error setting brightness to level: %v\n%v\n", level, err)
 			}
 			os.Exit(0)
 		}
 
 		// Provided level is an absolute percentage (ex: 25%).
-		if err := Set(FCtl, max, level, false); err != nil {
-			log.Fatal(err)
+		if err := bl.Set(fCtl, level); err != nil {
+			log.Fatalf("Error setting brightness to level: %v\n%v\n", level, err)
 		}
 
 	default:

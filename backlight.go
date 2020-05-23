@@ -13,16 +13,17 @@ type Backlight struct {
 	MaxBrightness     float64
 }
 
+// NewBacklight returns a new Backlight value.
 func NewBacklight(cur, max io.Reader) (*Backlight, error) {
 	var bl Backlight
 	var err error
 
-	bl.CurrentBrightness, err = getVal(cur)
+	bl.CurrentBrightness, err = get(cur)
 	if err != nil {
 		return &bl, err
 	}
 
-	bl.MaxBrightness, err = getVal(max)
+	bl.MaxBrightness, err = get(max)
 	if err != nil {
 		return &bl, err
 	}
@@ -30,8 +31,8 @@ func NewBacklight(cur, max io.Reader) (*Backlight, error) {
 	return &bl, nil
 }
 
-// getVal retrieves a float value from the provided io.Reader.
-func getVal(r io.Reader) (float64, error) {
+// get retrieves a float value from the provided io.Reader.
+func get(r io.Reader) (float64, error) {
 	var val float64
 
 	b, err := ioutil.ReadAll(r)
@@ -48,12 +49,9 @@ func getVal(r io.Reader) (float64, error) {
 	return val, nil
 }
 
-// Set writes a backlight brightness value to the provided io.Writer.
+// Set writes a backlight brightness value (in percent) to the provided io.Writer.
 func (bl *Backlight) Set(w io.Writer, pct float64) error {
-	b := strconv.AppendFloat(
-		[]byte(nil),
-		fromPct(bl.MaxBrightness, pct),
-		'f', 0, 64)
+	b := strconv.AppendFloat([]byte(nil), bl.PercentToBrightness(pct), 'f', 0, 64)
 	_, err := w.Write(b)
 	return err
 }
@@ -61,30 +59,18 @@ func (bl *Backlight) Set(w io.Writer, pct float64) error {
 // SetIncr writes an increment of backlight brightness to the provided io.ReadWriter.
 // For example: -5 -> -5% of max brightness
 func (bl *Backlight) SetIncr(w io.Writer, pct float64) error {
-	b := strconv.AppendFloat(
-		[]byte(nil),
-		bl.CurrentBrightness+fromPct(bl.MaxBrightness, pct),
-		'f', 0, 64)
+	totalBrightness := bl.CurrentBrightness + bl.PercentToBrightness(pct)
+	b := strconv.AppendFloat([]byte(nil), totalBrightness, 'f', 0, 64)
 	_, err := w.Write(b)
 	return err
 }
 
-// Set writes backlight brightness to the provided io.ReadWriter.
-// pct: overall brightness level, or increment, expressed as a percentage
-// 	- (ex: 30 -> 30% of max brightness)
-// 	- (ex: -5 -> -5% of max brightness)
-// incr: indicates whether the pct value provided is an increment.
-
-// toPct returns a percent value for brightness, given a brightness and
-// max brightness value in "brightness units".
-// E.g. toPct(4437.0, 1092.0) -> 25 (%)
-func toPct(max, b float64) float64 {
-	return b / max * 100.0
+// Percent returns a percent value for brightness.
+func (bl *Backlight) Percent() float64 {
+	return bl.CurrentBrightness / bl.MaxBrightness * 100
 }
 
-// fromPct takes a percent brightness value and max value in "brightness
-// units", and returns the current brightness value in "brightness units".
-// E.g. fromPct(25.0, 4437.0) -> 1109.0
-func fromPct(max, pct float64) float64 {
-	return pct / 100.0 * max
+// PercentToBrightness takes a percent value and returns the percent of max in "brightness units".
+func (bl *Backlight) PercentToBrightness(pct float64) float64 {
+	return pct / 100 * bl.MaxBrightness
 }
