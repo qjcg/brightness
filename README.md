@@ -1,7 +1,5 @@
 # backlight
 
-[![API reference](https://img.shields.io/badge/godoc-reference-5272B4)](https://pkg.go.dev/github.com/qjcg/brightness?tab=doc)
-
 A CLI tool for setting screen backlight brightness on Linux via sysfs.
 
 ## Features
